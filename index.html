@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Line</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#16110d;
+    --bg-2:#1e1712;
+    --surface:#271e17;
+    --surface-2:#2f251c;
+    --accent:#e6a15b;
+    --accent-dim:#c6813f;
+    --text:#f2e8db;
+    --text-muted:#a9998554;
+    --muted:#a89882;
+    --danger:#d9694f;
+    --ring: rgba(230,161,91,0.35);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(230,161,91,0.10), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    overflow:hidden;
+  }
+  #app{height:100vh; height:100dvh; display:flex; flex-direction:column;}
+
+  /* ---------- Pairing screen ---------- */
+  .pair-wrap{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .pair-card{
+    width:100%; max-width:380px; text-align:center;
+  }
+  .glow{
+    width:64px; height:64px; margin:0 auto 28px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, var(--accent), var(--accent-dim) 70%, transparent 100%);
+    box-shadow:0 0 40px 6px rgba(230,161,91,0.35);
+  }
+  .pair-card h1{
+    font-family:'Fraunces',serif; font-weight:500; font-size:28px;
+    line-height:1.25; margin:0 0 8px;
+  }
+  .pair-card p.sub{
+    color:var(--muted); font-size:14.5px; margin:0 0 32px; line-height:1.5;
+  }
+  .code-row{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    background:var(--surface); border:1px solid rgba(255,255,255,0.06);
+    border-radius:14px; padding:14px 16px; margin-bottom:14px;
+  }
+  .code-row .label{font-size:12.5px; color:var(--muted); text-align:left;}
+  .code-row .value{font-size:19px; letter-spacing:2px; font-weight:600;}
+  .icon-btn{
+    background:none; border:none; color:var(--muted); cursor:pointer;
+    padding:6px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover{color:var(--text); background:rgba(255,255,255,0.05);}
+  .divider{
+    display:flex; align-items:center; gap:12px; color:var(--muted);
+    font-size:12.5px; margin:22px 0;
+  }
+  .divider::before,.divider::after{content:""; flex:1; height:1px; background:rgba(255,255,255,0.08);}
+  .field{
+    width:100%; background:var(--surface); border:1px solid rgba(255,255,255,0.08);
+    border-radius:14px; padding:14px 16px; color:var(--text); font-size:15px;
+    font-family:'Inter',sans-serif; outline:none; margin-bottom:12px; text-align:center;
+    letter-spacing:1px;
+  }
+  .field:focus{border-color:var(--accent); box-shadow:0 0 0 4px var(--ring);}
+  .btn-primary{
+    width:100%; border:none; border-radius:14px; padding:14px 16px;
+    background:var(--accent); color:#1a1209; font-weight:600; font-size:15px;
+    cursor:pointer; transition:transform .12s ease, background .12s ease;
+  }
+  .btn-primary:hover{background:var(--accent-dim);}
+  .btn-primary:active{transform:scale(0.98);}
+  .btn-primary:disabled{opacity:0.5; cursor:default;}
+  .status-line{margin-top:18px; font-size:13px; color:var(--muted); min-height:18px;}
+
+  /* ---------- Chat screen ---------- */
+  #chat-screen{display:none; flex:1; flex-direction:column; min-height:0;}
+  .chat-header{
+    display:flex; align-items:center; gap:12px;
+    padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.06);
+    background:var(--bg-2); flex-shrink:0;
+  }
+  .avatar-dot{
+    width:38px; height:38px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, var(--accent), var(--accent-dim));
+    flex-shrink:0;
+  }
+  .header-text{flex:1; min-width:0;}
+  .header-text .name{font-weight:600; font-size:15.5px;}
+  .header-text .status{font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:6px;}
+  .status-dot{width:6px; height:6px; border-radius:50%; background:var(--muted); flex-shrink:0;}
+  .status-dot.on{background:#7fbf7f;}
+  .header-actions{display:flex; gap:4px;}
+
+  .messages{
+    flex:1; overflow-y:auto; padding:18px; display:flex; flex-direction:column; gap:4px;
+  }
+  .bubble-row{display:flex;}
+  .bubble-row.me{justify-content:flex-end;}
+  .bubble{
+    max-width:74%; padding:10px 14px; border-radius:18px; font-size:14.5px;
+    line-height:1.45; margin:3px 0; word-wrap:break-word; animation:rise .18s ease-out;
+  }
+  @keyframes rise{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+  .bubble-row:not(.me) .bubble{background:var(--surface); border-bottom-left-radius:5px;}
+  .bubble-row.me .bubble{background:var(--accent); color:#1a1209; border-bottom-right-radius:5px;}
+  .bubble img{max-width:100%; border-radius:12px; display:block; cursor:pointer;}
+  .bubble .time{display:block; font-size:10.5px; opacity:0.6; margin-top:4px; text-align:right;}
+
+  .voice-bubble{display:flex; align-items:center; gap:10px; min-width:170px;}
+  .voice-play{
+    width:30px; height:30px; border-radius:50%; border:none; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .bubble-row:not(.me) .voice-play{background:var(--accent); color:#1a1209;}
+  .bubble-row.me .voice-play{background:#1a1209; color:var(--accent);}
+  .voice-wave{flex:1; height:20px; display:flex; align-items:center; gap:2px;}
+  .voice-wave span{width:2px; background:currentColor; opacity:0.55; border-radius:1px;}
+
+  .composer{
+    display:flex; align-items:center; gap:6px; padding:10px 12px;
+    border-top:1px solid rgba(255,255,255,0.06); background:var(--bg-2); flex-shrink:0;
+  }
+  .composer input[type=text]{
+    flex:1; background:var(--surface); border:1px solid rgba(255,255,255,0.06);
+    border-radius:22px; padding:11px 16px; color:var(--text); font-size:14.5px;
+    font-family:'Inter',sans-serif; outline:none;
+  }
+  .composer input[type=text]:focus{border-color:var(--accent);}
+  .composer .icon-btn{color:var(--muted); padding:9px;}
+  .composer .send-btn{background:var(--accent); color:#1a1209;}
+  .composer .send-btn:hover{background:var(--accent-dim); color:#1a1209;}
+  .rec-active{color:var(--danger) !important;}
+
+  /* ---------- Call overlay ---------- */
+  #call-overlay{
+    position:fixed; inset:0; background:#0e0b08; display:none;
+    flex-direction:column; align-items:center; justify-content:center; z-index:50;
+  }
+  #call-overlay video#remote-video{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#0e0b08;
+  }
+  #call-overlay video#local-video{
+    position:absolute; bottom:110px; right:16px; width:96px; height:130px;
+    border-radius:14px; object-fit:cover; border:1px solid rgba(255,255,255,0.15);
+    background:#000;
+  }
+  .call-info{position:relative; z-index:2; text-align:center; margin-top:auto;}
+  .call-info .avatar-dot{width:88px; height:88px; margin:0 auto 16px;
+    box-shadow:0 0 50px 10px rgba(230,161,91,0.25);}
+  .call-info h2{font-family:'Fraunces',serif; font-weight:500; font-size:22px; margin:0 0 6px;}
+  .call-info p{color:var(--muted); font-size:14px; margin:0;}
+  .call-controls{
+    position:relative; z-index:2; display:flex; gap:18px; margin:36px 0 48px;
+  }
+  .call-btn{
+    width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
+    background:rgba(255,255,255,0.1); color:var(--text);
+    display:flex; align-items:center; justify-content:center;
+    transition:background .15s ease;
+  }
+  .call-btn.active{background:var(--accent); color:#1a1209;}
+  .call-btn.end{background:var(--danger); color:#fff;}
+  .incoming-actions{display:flex; gap:24px; position:relative; z-index:2; margin-top:36px;}
+  .incoming-actions .call-btn{width:64px; height:64px;}
+
+  svg{width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+  .call-btn svg{width:24px; height:24px;}
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12); border-radius:3px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Pairing screen -->
+  <div class="pair-wrap" id="pair-screen">
+    <div class="pair-card">
+      <div class="glow"></div>
+      <h1>A line just<br>for the two of you.</h1>
+      <p class="sub">No accounts, no feed, no one else on it. Set it up once and it opens straight to each other from here on.</p>
+
+      <div class="code-row">
+        <div style="flex:1; text-align:left;">
+          <div class="label">Your code</div>
+          <div class="value" id="my-code">— — — — — —</div>
+        </div>
+        <button class="icon-btn" id="copy-code" title="Copy">
+          <svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+        </button>
+      </div>
+
+      <div class="divider">then</div>
+
+      <input class="field" id="partner-input" type="text" placeholder="enter their code" autocomplete="off" autocapitalize="off">
+      <button class="btn-primary" id="connect-btn">Connect</button>
+      <div class="status-line" id="pair-status"></div>
+    </div>
+  </div>
+
+  <!-- Chat screen -->
+  <div id="chat-screen">
+    <div class="chat-header">
+      <div class="avatar-dot"></div>
+      <div class="header-text">
+        <div class="name">Your line</div>
+        <div class="status"><span class="status-dot" id="status-dot"></span><span id="status-text">connecting…</span></div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="voice-call-btn" title="Voice call">
+          <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </button>
+        <button class="icon-btn" id="video-call-btn" title="Video call">
+          <svg viewBox="0 0 24 24"><rect x="1" y="5" width="15" height="14" rx="2"/><path d="M23 7l-7 5 7 5V7z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="composer">
+      <button class="icon-btn" id="img-btn" title="Send a photo">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </button>
+      <input type="file" id="img-input" accept="image/*" hidden>
+      <input type="text" id="text-input" placeholder="Say something">
+      <button class="icon-btn" id="mic-btn" title="Hold to record">
+        <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg>
+      </button>
+      <button class="icon-btn send-btn" id="send-btn" title="Send">
+        <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Call overlay -->
+  <div id="call-overlay">
+    <video id="remote-video" autoplay playsinline></video>
+    <video id="local-video" autoplay playsinline muted></video>
+    <div class="call-info" id="call-info">
+      <div class="avatar-dot"></div>
+      <h2 id="call-title">Calling…</h2>
+      <p id="call-sub">ringing</p>
+    </div>
+    <div class="call-controls" id="active-controls" style="display:none;">
+      <button class="call-btn" id="mute-btn"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg></button>
+      <button class="call-btn end" id="end-call-btn"><svg viewBox="0 0 24 24"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11z"/><line x1="2" y1="2" x2="22" y2="22"/></svg></button>
+      <button class="call-btn" id="cam-btn"><svg viewBox="0 0 24 24"><rect x="1" y="5" width="15" height="14" rx="2"/><path d="M23 7l-7 5 7 5V7z"/></svg></button>
+    </div>
+    <div class="incoming-actions" id="incoming-actions" style="display:none;">
+      <button class="call-btn end" id="decline-btn"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="2" y2="22"/><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2"/></svg></button>
+      <button class="call-btn active" id="accept-btn"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  const genCode = () => {
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let s=''; for(let i=0;i<6;i++) s += abc[Math.floor(Math.random()*abc.length)];
+    return s;
+  };
+
+  let myId = localStorage.getItem('line_my_id');
+  if(!myId){ myId = genCode(); localStorage.setItem('line_my_id', myId); }
+  let partnerId = localStorage.getItem('line_partner_id') || null;
+  const storeKey = () => 'line_messages_' + partnerId;
+  let messages = partnerId ? JSON.parse(localStorage.getItem(storeKey()) || '[]') : [];
+
+  $('my-code').textContent = myId;
+  $('copy-code').onclick = () => {
+    navigator.clipboard.writeText(myId).catch(()=>{});
+    $('pair-status').textContent = 'Copied — send it to them however you talk now.';
+  };
+
+  let peer, dataConn, call, localStream;
+  let recorder, recChunks = [], recStart = 0;
+  let ringtone = null;
+
+  function initPeer(){
+    peer = new Peer(myId, { debug: 0 });
+
+    peer.on('open', () => {
+      if (partnerId) attemptConnect();
+    });
+
+    peer.on('connection', conn => {
+      partnerId = conn.peer;
+      localStorage.setItem('line_partner_id', partnerId);
+      messages = JSON.parse(localStorage.getItem(storeKey()) || '[]');
+      showChat();
+      wireConn(conn);
+    });
+
+    peer.on('call', incomingCall => {
+      call = incomingCall;
+      showIncomingCall();
+    });
+
+    peer.on('error', err => {
+      if (partnerId) setStatus(false, 'reconnecting…');
+    });
+
+    peer.on('disconnected', () => { peer.reconnect(); });
+  }
+
+  function attemptConnect(){
+    if(!partnerId) return;
+    const conn = peer.connect(partnerId, {reliable:true});
+    wireConn(conn);
+  }
+
+  function wireConn(conn){
+    dataConn = conn;
+    conn.on('open', () => setStatus(true, 'connected'));
+    conn.on('data', handleData);
+    conn.on('close', () => { setStatus(false, 'reconnecting…'); setTimeout(attemptConnect, 1500); });
+    conn.on('error', () => setStatus(false, 'reconnecting…'));
+  }
+
+  function setStatus(on, text){
+    $('status-dot').classList.toggle('on', on);
+    $('status-text').textContent = text;
+  }
+
+  function handleData(msg){
+    if(msg.type === 'text' || msg.type === 'image' || msg.type === 'voice'){
+      addMessage({...msg, me:false}, true);
+    }
+  }
+
+  function saveMessages(){
+    localStorage.setItem(storeKey(), JSON.stringify(messages.slice(-300)));
+  }
+
+  function addMessage(msg, incoming){
+    messages.push(msg);
+    saveMessages();
+    renderMessage(msg);
+    $('messages').scrollTop = $('messages').scrollHeight;
+  }
+
+  function fmtTime(ts){
+    const d = new Date(ts);
+    return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function renderMessage(msg){
+    const row = document.createElement('div');
+    row.className = 'bubble-row ' + (msg.me ? 'me' : '');
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+
+    if(msg.type === 'text'){
+      const t = document.createElement('div');
+      t.textContent = msg.text;
+      bubble.appendChild(t);
+    } else if(msg.type === 'image'){
+      const img = document.createElement('img');
+      img.src = msg.data;
+      img.onclick = () => window.open(msg.data, '_blank');
+      bubble.appendChild(img);
+    } else if(msg.type === 'voice'){
+      bubble.appendChild(buildVoiceBubble(msg));
+    }
+
+    const time = document.createElement('span');
+    time.className = 'time';
+    time.textContent = fmtTime(msg.ts);
+    bubble.appendChild(time);
+
+    row.appendChild(bubble);
+    $('messages').appendChild(row);
+  }
+
+  function buildVoiceBubble(msg){
+    const wrap = document.createElement('div');
+    wrap.className = 'voice-bubble';
+    const btn = document.createElement('button');
+    btn.className = 'voice-play';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+    const wave = document.createElement('div');
+    wave.className = 'voice-wave';
+    for(let i=0;i<18;i++){
+      const bar = document.createElement('span');
+      bar.style.height = (5 + Math.random()*13) + 'px';
+      wave.appendChild(bar);
+    }
+    const audio = new Audio(msg.data);
+    btn.onclick = () => { audio.currentTime = 0; audio.play(); };
+    wrap.appendChild(btn);
+    wrap.appendChild(wave);
+    return wrap;
+  }
+
+  function renderAll(){
+    $('messages').innerHTML = '';
+    messages.forEach(renderMessage);
+    $('messages').scrollTop = $('messages').scrollHeight;
+  }
+
+  // ---------- pairing ----------
+  $('connect-btn').onclick = () => {
+    const code = $('partner-input').value.trim().toUpperCase();
+    if(code.length < 4){ $('pair-status').textContent = 'That code looks too short.'; return; }
+    if(code === myId){ $('pair-status').textContent = "That's your own code."; return; }
+    partnerId = code;
+    localStorage.setItem('line_partner_id', partnerId);
+    messages = [];
+    showChat();
+    attemptConnect();
+  };
+
+  function showChat(){
+    $('pair-screen').style.display = 'none';
+    $('chat-screen').style.display = 'flex';
+    renderAll();
+  }
+
+  // ---------- composer ----------
+  $('send-btn').onclick = sendText;
+  $('text-input').addEventListener('keydown', e => { if(e.key === 'Enter') sendText(); });
+
+  function sendText(){
+    const val = $('text-input').value.trim();
+    if(!val || !dataConn || !dataConn.open) return;
+    const msg = {type:'text', text: val, ts: Date.now()};
+    dataConn.send(msg);
+    addMessage({...msg, me:true});
+    $('text-input').value = '';
+  }
+
+  $('img-btn').onclick = () => $('img-input').click();
+  $('img-input').onchange = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, 1280 / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        const msg = {type:'image', data: dataUrl, ts: Date.now()};
+        if(dataConn && dataConn.open) dataConn.send(msg);
+        addMessage({...msg, me:true});
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // ---------- voice notes ----------
+  let isRecording = false;
+  $('mic-btn').addEventListener('mousedown', startRec);
+  $('mic-btn').addEventListener('touchstart', e => { e.preventDefault(); startRec(); });
+  $('mic-btn').addEventListener('mouseup', stopRec);
+  $('mic-btn').addEventListener('mouseleave', () => { if(isRecording) stopRec(); });
+  $('mic-btn').addEventListener('touchend', stopRec);
+
+  async function startRec(){
+    if(isRecording) return;
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      recorder = new MediaRecorder(stream);
+      recChunks = [];
+      recStart = Date.now();
+      recorder.ondataavailable = e => recChunks.push(e.data);
+      recorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(recChunks, {type:'audio/webm'});
+        const duration = Math.round((Date.now() - recStart)/1000);
+        if(duration < 1) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const msg = {type:'voice', data: reader.result, duration, ts: Date.now()};
+          if(dataConn && dataConn.open) dataConn.send(msg);
+          addMessage({...msg, me:true});
+        };
+        reader.readAsDataURL(blob);
+      };
+      recorder.start();
+      isRecording = true;
+      $('mic-btn').classList.add('rec-active');
+    }catch(err){ /* mic permission denied */ }
+  }
+  function stopRec(){
+    if(!isRecording) return;
+    isRecording = false;
+    $('mic-btn').classList.remove('rec-active');
+    if(recorder && recorder.state !== 'inactive') recorder.stop();
+  }
+
+  // ---------- calls ----------
+  const overlay = $('call-overlay');
+  const remoteVideo = $('remote-video');
+  const localVideo = $('local-video');
+
+  $('voice-call-btn').onclick = () => startCall(false);
+  $('video-call-btn').onclick = () => startCall(true);
+
+  async function startCall(withVideo){
+    if(!partnerId) return;
+    try{
+      localStream = await navigator.mediaDevices.getUserMedia({audio:true, video:withVideo});
+    }catch(err){ return; }
+    localVideo.srcObject = localStream;
+    localVideo.style.display = withVideo ? 'block' : 'none';
+    call = peer.call(partnerId, localStream);
+    setupCall(withVideo, true);
+    call.on('stream', remoteStream => { remoteVideo.srcObject = remoteStream; });
+    call.on('close', endCall);
+  }
+
+  function showIncomingCall(){
+    overlay.style.display = 'flex';
+    $('call-title').textContent = 'Incoming call';
+    $('call-sub').textContent = 'from your line';
+    $('incoming-actions').style.display = 'flex';
+    $('active-controls').style.display = 'none';
+
+    $('accept-btn').onclick = async () => {
+      const withVideo = call.metadata && call.metadata.video;
+      try{
+        localStream = await navigator.mediaDevices.getUserMedia({audio:true, video:true});
+      }catch(err){
+        try{ localStream = await navigator.mediaDevices.getUserMedia({audio:true}); }catch(e2){ return; }
+      }
+      localVideo.srcObject = localStream;
+      call.answer(localStream);
+      call.on('stream', remoteStream => { remoteVideo.srcObject = remoteStream; });
+      call.on('close', endCall);
+      setupCall(true, true);
+    };
+    $('decline-btn').onclick = () => { call.close(); overlay.style.display = 'none'; };
+  }
+
+  function setupCall(withVideo, connected){
+    $('incoming-actions').style.display = 'none';
+    $('active-controls').style.display = 'flex';
+    $('call-title').textContent = 'On the line';
+    $('call-sub').textContent = 'connected';
+    overlay.style.display = 'flex';
+    localVideo.style.display = withVideo ? 'block' : 'none';
+  }
+
+  $('mute-btn').onclick = () => {
+    if(!localStream) return;
+    const track = localStream.getAudioTracks()[0];
+    track.enabled = !track.enabled;
+    $('mute-btn').classList.toggle('active', !track.enabled);
+  };
+  $('cam-btn').onclick = () => {
+    if(!localStream) return;
+    const track = localStream.getVideoTracks()[0];
+    if(!track) return;
+    track.enabled = !track.enabled;
+    localVideo.style.display = track.enabled ? 'block' : 'none';
+    $('cam-btn').classList.toggle('active', !track.enabled);
+  };
+  $('end-call-btn').onclick = endCall;
+
+  function endCall(){
+    if(call) call.close();
+    if(localStream) localStream.getTracks().forEach(t => t.stop());
+    overlay.style.display = 'none';
+    localVideo.srcObject = null;
+    remoteVideo.srcObject = null;
+  }
+
+  // ---------- boot ----------
+  if(partnerId){
+    showChat();
+  }
+  initPeer();
+})();
+</script>
+</body>
+</html>
